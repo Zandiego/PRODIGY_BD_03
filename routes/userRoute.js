@@ -1,21 +1,35 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
-// const { validateUser, validateUpdate } = require("../middlewares/validateUser");
+const authenticateToken = require("../middlewares/authMiddleware");
+const authorizeRole = require("../middlewares/authorizeRole");
 
-// Create a new user (with validation)
-router.post("/",  userController.createUser);
+// Public Routes
+router.post("/", userController.createUser);
+router.post("/login", userController.loginUser);
 
-// Get all users
-router.get("/", userController.getAllUsers);
+// Protected Routes
+router.get("/", authenticateToken, authorizeRole("admin"), userController.getAllUsers); // Only admin
+router.get("/:id", authenticateToken, (req, res, next) => {
+  if (req.user.role !== "admin" && req.user.userId !== req.params.id) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+  next();
+}, userController.getUserById);
 
-// Get a single user by ID
-router.get("/:id", userController.getUserById);
+router.put("/:id", authenticateToken, (req, res, next) => {
+  if (req.user.role !== "admin" && req.user.userId !== req.params.id) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+  next();
+}, userController.updateUser);
 
-// Update a user by ID (with validation)
-router.put("/:id",  userController.updateUser);
+router.delete("/:id", authenticateToken, (req, res, next) => {
+  if (req.user.role !== "admin" && req.user.userId !== req.params.id) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+  next();
+}, userController.deleteUser);
 
-// Delete a user by ID
-router.delete("/:id", userController.deleteUser);
 
 module.exports = router;
